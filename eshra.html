@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Esharq Card Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+–cyan: #00e5ff;
+–bg: #080b0f;
+–surface: #0d1117;
+–border: #1a2332;
+–text: #e8edf2;
+–muted: #4a5568;
+}
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: ‘Space Grotesk’, sans-serif;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+padding: 40px 20px;
+}
+
+.header {
+text-align: center;
+margin-bottom: 48px;
+}
+
+.header h1 {
+font-size: 13px;
+font-family: ‘JetBrains Mono’, monospace;
+color: var(–cyan);
+letter-spacing: 4px;
+text-transform: uppercase;
+margin-bottom: 8px;
+}
+
+.header p {
+color: var(–muted);
+font-size: 14px;
+}
+
+.main {
+display: grid;
+grid-template-columns: 420px 1fr;
+gap: 32px;
+width: 100%;
+max-width: 1100px;
+align-items: start;
+}
+
+/* LEFT PANEL */
+.panel {
+background: var(–surface);
+border: 1px solid var(–border);
+border-radius: 16px;
+padding: 28px;
+display: flex;
+flex-direction: column;
+gap: 20px;
+}
+
+.panel-title {
+font-size: 11px;
+font-family: ‘JetBrains Mono’, monospace;
+color: var(–cyan);
+letter-spacing: 3px;
+text-transform: uppercase;
+padding-bottom: 16px;
+border-bottom: 1px solid var(–border);
+}
+
+.field {
+display: flex;
+flex-direction: column;
+gap: 8px;
+}
+
+.field label {
+font-size: 12px;
+color: var(–muted);
+font-family: ‘JetBrains Mono’, monospace;
+letter-spacing: 1px;
+}
+
+.field input, .field textarea {
+background: var(–bg);
+border: 1px solid var(–border);
+border-radius: 10px;
+padding: 12px 14px;
+color: var(–text);
+font-family: ‘Space Grotesk’, sans-serif;
+font-size: 14px;
+outline: none;
+transition: border-color 0.2s;
+resize: none;
+}
+
+.field input:focus, .field textarea:focus {
+border-color: var(–cyan);
+}
+
+.field textarea {
+height: 120px;
+line-height: 1.6;
+}
+
+.char-count {
+font-size: 11px;
+color: var(–muted);
+text-align: right;
+font-family: ‘JetBrains Mono’, monospace;
+}
+
+.char-count.warn { color: #f6ad55; }
+.char-count.over { color: #fc8181; }
+
+.btn {
+padding: 13px 20px;
+border-radius: 10px;
+font-family: ‘Space Grotesk’, sans-serif;
+font-size: 14px;
+font-weight: 600;
+cursor: pointer;
+border: none;
+transition: all 0.2s;
+letter-spacing: 0.5px;
+}
+
+.btn-primary {
+background: var(–cyan);
+color: #000;
+width: 100%;
+}
+
+.btn-primary:hover { background: #00cfee; transform: translateY(-1px); }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+background: transparent;
+color: var(–cyan);
+border: 1px solid var(–cyan);
+width: 100%;
+font-size: 13px;
+}
+
+.btn-secondary:hover { background: rgba(0,229,255,0.07); }
+
+.divider {
+height: 1px;
+background: var(–border);
+}
+
+.refine-section {
+display: flex;
+flex-direction: column;
+gap: 10px;
+}
+
+.refine-label {
+font-size: 11px;
+color: var(–muted);
+font-family: ‘JetBrains Mono’, monospace;
+letter-spacing: 1px;
+}
+
+/* API KEYS SECTION */
+.keys-toggle {
+font-size: 12px;
+color: var(–muted);
+cursor: pointer;
+display: flex;
+align-items: center;
+gap: 6px;
+font-family: ‘JetBrains Mono’, monospace;
+letter-spacing: 1px;
+user-select: none;
+}
+
+.keys-toggle:hover { color: var(–cyan); }
+
+.keys-section {
+display: flex;
+flex-direction: column;
+gap: 12px;
+overflow: hidden;
+max-height: 0;
+transition: max-height 0.3s ease;
+}
+
+.keys-section.open { max-height: 200px; }
+
+/* RIGHT PANEL - PREVIEW */
+.preview-panel {
+display: flex;
+flex-direction: column;
+gap: 16px;
+}
+
+.preview-title {
+font-size: 11px;
+font-family: ‘JetBrains Mono’, monospace;
+color: var(–cyan);
+letter-spacing: 3px;
+text-transform: uppercase;
+}
+
+.preview-wrapper {
+position: relative;
+width: 100%;
+aspect-ratio: 1;
+border-radius: 16px;
+overflow: hidden;
+background: #0a0a0a;
+border: 1px solid var(–border);
+}
+
+#bg-image {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+object-fit: cover;
+transition: opacity 0.4s ease;
+}
+
+.bg-overlay {
+position: absolute;
+inset: 0;
+background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.2) 100%);
+}
+
+/* THE CARD */
+.card-container {
+position: absolute;
+bottom: 6%;
+left: 5%;
+right: 5%;
+}
+
+.tweet-card {
+background: rgba(0, 0, 0, 0.92);
+border-radius: 18px;
+padding: 22px 26px 26px;
+backdrop-filter: blur(10px);
+}
+
+.card-header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+margin-bottom: 18px;
+}
+
+.card-profile {
+display: flex;
+align-items: center;
+gap: 12px;
+}
+
+.card-avatar {
+width: 44px;
+height: 44px;
+border-radius: 50%;
+background: #0d1117;
+border: 1.5px solid #1a2332;
+display: flex;
+align-items: center;
+justify-content: center;
+overflow: hidden;
+flex-shrink: 0;
+}
+
+.card-avatar svg {
+width: 32px;
+height: 32px;
+}
+
+.card-name {
+font-size: 15px;
+font-weight: 700;
+color: #fff;
+display: flex;
+align-items: center;
+gap: 5px;
+line-height: 1;
+margin-bottom: 3px;
+}
+
+.card-name .verified {
+color: #1d9bf0;
+font-size: 14px;
+}
+
+.card-handle {
+font-size: 13px;
+color: #71767b;
+}
+
+.card-x {
+font-size: 20px;
+color: #fff;
+font-weight: 700;
+font-family: serif;
+display: flex;
+align-items: center;
+gap: 1px;
+}
+
+.card-x span {
+font-size: 16px;
+color: #888;
+font-family: ‘Space Grotesk’, sans-serif;
+font-weight: 400;
+}
+
+.card-text {
+font-size: 20px;
+font-weight: 500;
+color: #fff;
+line-height: 1.45;
+letter-spacing: -0.2px;
+}
+
+/* PLACEHOLDER STATE */
+.placeholder-state {
+position: absolute;
+inset: 0;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+gap: 12px;
+color: var(–muted);
+}
+
+.placeholder-state svg {
+opacity: 0.3;
+}
+
+.placeholder-state p {
+font-size: 13px;
+font-family: ‘JetBrains Mono’, monospace;
+}
+
+/* STATUS */
+.status {
+font-size: 12px;
+font-family: ‘JetBrains Mono’, monospace;
+color: var(–muted);
+display: flex;
+align-items: center;
+gap: 8px;
+min-height: 20px;
+}
+
+.status.loading { color: var(–cyan); }
+.status.error { color: #fc8181; }
+.status.success { color: #68d391; }
+
+.dot {
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: currentColor;
+animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.3; }
+}
+
+.btn-download {
+background: var(–surface);
+color: var(–text);
+border: 1px solid var(–border);
+width: 100%;
+font-size: 13px;
+}
+
+.btn-download:hover { border-color: var(–cyan); color: var(–cyan); }
+
+@media (max-width: 900px) {
+.main { grid-template-columns: 1fr; }
+}
+</style>
+
+</head>
+<body>
+
+<div class="header">
+  <h1>Esharq Card Generator</h1>
+  <p>Enter tweet text → AI picks background → download</p>
+</div>
+
+<div class="main">
+
+  <!-- LEFT: CONTROLS -->
+
+  <div class="panel">
+    <div class="panel-title">Generate</div>
+
+```
+<div class="field">
+  <label>TWEET TEXT</label>
+  <textarea id="tweet-text" placeholder="A client came to us with a business that had been running for 2 years..." oninput="updateCharCount()"></textarea>
+  <div class="char-count" id="char-count">0 / 280</div>
+</div>
+
+<button class="btn btn-primary" id="gen-btn" onclick="generate()">Generate Card</button>
+
+<div class="divider"></div>
+
+<div class="refine-section">
+  <div class="refine-label">OPTIONAL — REFINE BACKGROUND</div>
+  <div class="field">
+    <input type="text" id="refine-input" placeholder="e.g. dark blue server room, neon lights..." />
+  </div>
+  <button class="btn btn-secondary" onclick="refineBackground()">Apply Custom Background</button>
+</div>
+
+<div class="divider"></div>
+
+<!-- API KEYS -->
+<div class="keys-toggle" onclick="toggleKeys()">
+  <span id="keys-arrow">▶</span> API Keys
+</div>
+<div class="keys-section" id="keys-section">
+  <div class="field">
+    <label>UNSPLASH ACCESS KEY</label>
+    <input type="password" id="unsplash-key" placeholder="Your Unsplash key..." />
+  </div>
+</div>
+```
+
+  </div>
+
+  <!-- RIGHT: PREVIEW -->
+
+  <div class="preview-panel">
+    <div class="preview-title">Preview</div>
+
+```
+<div class="preview-wrapper" id="card-wrapper">
+
+  <!-- placeholder -->
+  <div class="placeholder-state" id="placeholder">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+      <rect x="3" y="3" width="18" height="18" rx="3"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <path d="M21 15l-5-5L5 21"/>
+    </svg>
+    <p>card will appear here</p>
+  </div>
+
+  <img id="bg-image" style="display:none; opacity:0;" crossorigin="anonymous" />
+  <div class="bg-overlay" id="bg-overlay" style="display:none;"></div>
+
+  <!-- THE CARD -->
+  <div class="card-container" id="card-container" style="display:none;">
+    <div class="tweet-card">
+      <div class="card-header">
+        <div class="card-profile">
+          <div class="card-avatar">
+            <!-- Esharq globe logo SVG -->
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="45" fill="#0a0f1a" stroke="#00e5ff" stroke-width="2"/>
+              <ellipse cx="50" cy="50" rx="20" ry="45" fill="none" stroke="#00e5ff" stroke-width="1.5"/>
+              <ellipse cx="50" cy="50" rx="45" ry="18" fill="none" stroke="#00e5ff" stroke-width="1.5"/>
+              <line x1="5" y1="50" x2="95" y2="50" stroke="#00e5ff" stroke-width="1.5"/>
+              <line x1="50" y1="5" x2="50" y2="95" stroke="#00e5ff" stroke-width="1.5"/>
+              <text x="50" y="55" text-anchor="middle" fill="#00e5ff" font-size="10" font-weight="bold" font-family="sans-serif">ESHARQ</text>
+            </svg>
+          </div>
+          <div>
+            <div class="card-name">
+              Esharq
+              <span class="verified">✓</span>
+            </div>
+            <div class="card-handle">@esharqofficial</div>
+          </div>
+        </div>
+        <div class="card-x">𝕏<span>.com</span></div>
+      </div>
+      <div class="card-text" id="card-text-display">Your tweet will appear here.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="status" id="status"></div>
+
+<button class="btn btn-download" id="dl-btn" onclick="downloadCard()" style="display:none;">
+  ↓ Download PNG
+</button>
+```
+
+  </div>
+
+</div>
+
+<!-- html2canvas -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+  let keysOpen = false;
+
+  function toggleKeys() {
+    keysOpen = !keysOpen;
+    document.getElementById('keys-section').classList.toggle('open', keysOpen);
+    document.getElementById('keys-arrow').textContent = keysOpen ? '▼' : '▶';
+  }
+
+  // Open keys by default if empty
+  window.onload = () => {
+    const saved_unsplash = localStorage.getItem('unsplash_key');
+    if (saved_unsplash) document.getElementById('unsplash-key').value = saved_unsplash;
+    if (!saved_unsplash) toggleKeys();
+  };
+
+  function saveKeys() {
+    const uk = document.getElementById('unsplash-key').value.trim();
+    if (uk) localStorage.setItem('unsplash_key', uk);
+  }
+
+  function updateCharCount() {
+    const text = document.getElementById('tweet-text').value;
+    const count = text.length;
+    const el = document.getElementById('char-count');
+    el.textContent = `${count} / 280`;
+    el.className = 'char-count' + (count > 280 ? ' over' : count > 240 ? ' warn' : '');
+  }
+
+  function setStatus(msg, type = '') {
+    const el = document.getElementById('status');
+    el.className = 'status ' + type;
+    el.innerHTML = type === 'loading'
+      ? `<span class="dot"></span> ${msg}`
+      : msg;
+  }
+
+  function getUnsplashQuery(text) {
+    const t = text.toLowerCase();
+    if (/car|ferrari|lamborghini|bmw|speed|drive|vehicle|motor/.test(t))
+      return 'dark luxury car night';
+    if (/brand|logo|identity|design|visual|creative/.test(t))
+      return 'dark abstract branding design';
+    if (/website|web|app|software|code|dev|tech|system|build/.test(t))
+      return 'dark code screen developer';
+    if (/money|profit|revenue|sales|price|cost|fund|invest|financ/.test(t))
+      return 'dark trading charts finance';
+    if (/market|growth|scale|business|client|customer|company/.test(t))
+      return 'dark city business night';
+    if (/ai|artificial|intelligence|machine|data|algorithm/.test(t))
+      return 'dark neural network technology';
+    if (/fast|speed|quick|deliver|week|day|hour/.test(t))
+      return 'dark motion blur speed';
+    if (/content|media|social|post|marketing|campaign/.test(t))
+      return 'dark neon social media';
+    if (/strategy|plan|goal|future|vision|success/.test(t))
+      return 'dark futuristic city lights';
+    return 'dark technology abstract neon';
+  }
+
+  async function fetchUnsplashImage(query, unsplashKey) {
+    const res = await fetch(
+      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=squarish&content_filter=high`,
+      { headers: { Authorization: `Client-ID ${unsplashKey}` } }
+    );
+    const data = await res.json();
+    if (data.errors) throw new Error(data.errors[0]);
+    return data.urls.regular;
+  }
+
+  function showCard(imageUrl, text) {
+    document.getElementById('placeholder').style.display = 'none';
+
+    const img = document.getElementById('bg-image');
+    img.style.display = 'block';
+    img.style.opacity = '0';
+    img.src = imageUrl;
+    img.onload = () => {
+      img.style.opacity = '1';
+    };
+
+    document.getElementById('bg-overlay').style.display = 'block';
+    document.getElementById('card-container').style.display = 'block';
+    document.getElementById('card-text-display').textContent = text;
+    document.getElementById('dl-btn').style.display = 'block';
+  }
+
+  async function generate() {
+    const text = document.getElementById('tweet-text').value.trim();
+    if (!text) { setStatus('Enter tweet text first', 'error'); return; }
+
+    const unsplashKey = document.getElementById('unsplash-key').value.trim();
+
+    if (!unsplashKey) {
+      setStatus('Add Unsplash key first ▲', 'error');
+      if (!keysOpen) toggleKeys();
+      return;
+    }
+
+    saveKeys();
+
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = true;
+
+    try {
+      setStatus('Analyzing text...', 'loading');
+      const query = getUnsplashQuery(text);
+
+      setStatus(`Fetching background: "${query}"`, 'loading');
+      const imageUrl = await fetchUnsplashImage(query, unsplashKey);
+
+      showCard(imageUrl, text);
+      setStatus('✓ Done', 'success');
+    } catch (e) {
+      setStatus('Error: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function refineBackground() {
+    const hint = document.getElementById('refine-input').value.trim();
+    if (!hint) { setStatus('Enter background description first', 'error'); return; }
+
+    const text = document.getElementById('tweet-text').value.trim() || 'placeholder';
+    const unsplashKey = document.getElementById('unsplash-key').value.trim();
+
+    if (!unsplashKey) { setStatus('Add Unsplash key first', 'error'); return; }
+
+    try {
+      setStatus(`Fetching: "${hint}"`, 'loading');
+      const imageUrl = await fetchUnsplashImage(hint, unsplashKey);
+      showCard(imageUrl, text);
+      setStatus('✓ Background updated', 'success');
+    } catch (e) {
+      setStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function downloadCard() {
+    setStatus('Rendering...', 'loading');
+    try {
+      const wrapper = document.getElementById('card-wrapper');
+      const canvas = await html2canvas(wrapper, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: null
+      });
+      const link = document.createElement('a');
+      link.download = `esharq-card-${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      setStatus('✓ Downloaded', 'success');
+    } catch (e) {
+      setStatus('Download error: ' + e.message, 'error');
+    }
+  }
+</script>
+
+</body>
+</html>
